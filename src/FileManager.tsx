@@ -63,7 +63,7 @@ const FileManager: React.FC<FileManagerProps> = ({ onFilesChange  }) => {
     if (onFilesChange) {
       onFilesChange(updatedFiles);
     }
-  };
+  }; 
 
   return (
     <div

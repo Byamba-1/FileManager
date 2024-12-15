@@ -3,4 +3,4 @@ export interface UploadedFile {
     name: string;
     type: string;
     data: string;
-}
+} 
