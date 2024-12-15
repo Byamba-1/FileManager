@@ -1,35 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UploadedFile } from './types';
 import './FileManager.css';
-
-
 
 interface FileManagerProps {
   onFilesChange?: (files: UploadedFile[]) => void;
 }
 
-const FileManager: React.FC<FileManagerProps> = ({ onFilesChange  }) => {
-
+const FileManager: React.FC<FileManagerProps> = ({ onFilesChange }) => {
   const [files, setFiles] = useState<UploadedFile[]>(() => {
     const savedFiles = localStorage.getItem('fileManager');
     return savedFiles ? JSON.parse(savedFiles) : [];
   });
 
-  const [isDragging, setIsDragging] = useState(false); 
+  const [isDragging, setIsDragging] = useState(false);
 
   const saveToLocalStorage = (updatedFiles: UploadedFile[]) => {
     localStorage.setItem('fileManager', JSON.stringify(updatedFiles));
   };
 
-  const handleFiles = (fileList: FileList | null) => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFiles = async (fileList: FileList | null) => {
     if (!fileList) return;
 
-    const newFiles: UploadedFile[] = Array.from(fileList).map((file) => ({
-      id: `${file.name}-${Date.now()}`,
-      name: file.name,
-      type: file.type,
-      data: URL.createObjectURL(file),
-    }));
+    const newFiles: UploadedFile[] = await Promise.all(
+      Array.from(fileList).map(async (file) => {
+        const base64Data = await fileToBase64(file); 
+        return {
+          id: `${file.name}-${Date.now()}`,
+          name: file.name,
+          type: file.type,
+          data: base64Data, 
+        };
+      })
+    );
 
     const updatedFiles = [...files, ...newFiles];
     setFiles(updatedFiles);
@@ -42,17 +53,17 @@ const FileManager: React.FC<FileManagerProps> = ({ onFilesChange  }) => {
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false); 
+    setIsDragging(false);
     handleFiles(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true); 
+    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false); 
+    setIsDragging(false);
   };
 
   const handleDelete = (fileId: string) => {
@@ -63,7 +74,7 @@ const FileManager: React.FC<FileManagerProps> = ({ onFilesChange  }) => {
     if (onFilesChange) {
       onFilesChange(updatedFiles);
     }
-  }; 
+  };
 
   return (
     <div
